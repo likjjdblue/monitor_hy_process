@@ -310,6 +310,7 @@ class monitorHYProcess:
                        TmpFileContent=f.read()
                except:
                    print ('异常发生，忽略')
+                   continue
                for TmpPathItem in self.TargetJAVAInstalledPathList:
                    if TmpPathItem in TmpFileContent:
                        TmpServiceName=path.basename(path.normpath(TmpPathItem+'/'))
@@ -317,7 +318,7 @@ class monitorHYProcess:
                            self.GlobalFileObj.write(CurrentTimeString+' 检测到多个相同进程，进程名称：'+\
                                         TmpServiceName+' '+str(self.Dict4Threadname[TmpServiceName])+\
                                                    ' '+TmpPID+'\n')
-                           print (CurrentTimeString+'相同的进程命令参数：'+TmpFileContent+'\n')
+                           print (CurrentTimeString+' 相同的进程命令参数：'+TmpFileContent+'\n')
                        elif TmpServiceName not in self.Dict4Threadname:
                            self.GlobalFileObj.write(CurrentTimeString+' 检测到新的JAVA进程,PID:'+TmpPID+' 名称：'+TmpServiceName+'\n')
                            threading.Thread(target=self.monitorProcess,args=[TmpServiceName,TmpPID,
