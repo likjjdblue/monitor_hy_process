@@ -215,6 +215,8 @@ class monitorHYProcess:
              QueueObj4CPU.append(TmpUsedDeltaCPU)
              QueueObj4RAM.append(TmpUsedDeltaRAM)
 
+             TmpPreviousUsedCPU=TmpCurrentUsedCPU
+             TmpPreviousUsedRAM=TmpCurrentUsedRAM
              TmpAverageCPUDelta=ceil(float(sum(QueueObj4CPU))/len(QueueObj4CPU))
              TmpAverageRAMDelta=int(ceil(float(sum(QueueObj4RAM))/len(QueueObj4RAM)))
 
@@ -231,7 +233,10 @@ class monitorHYProcess:
              ThreadObj.start()
              ThreadObj.join(8.0)
              if ThreadObj.is_alive():
-                TmpObj.terminate()
+                try:
+                    TmpObj.terminate()
+                except:
+                    pass
                 self.GlobalFileObj.write(name+'PID:'+str(pid)+' jstack 无响应，重新获取JVM 信息\n')
                 TmpSnapshotC=subprocess.Popen('jstack -F %s'%(pid,),shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()[0]
                 with open(path.join('logs',name,'jvm',name+'_'+str(pid)+'_'+CurrentTimeString+'_'+'jstack.log'),mode='wb') as f:
