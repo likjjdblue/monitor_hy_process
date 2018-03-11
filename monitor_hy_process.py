@@ -314,7 +314,10 @@ class monitorHYProcess:
                    if TmpPathItem in TmpFileContent:
                        TmpServiceName=path.basename(path.normpath(TmpPathItem+'/'))
                        if (TmpServiceName in self.Dict4Threadname) and (TmpPID!=self.Dict4Threadname[TmpServiceName]):
-                           self.GlobalFileObj.write(CurrentTimeString+' 检测到多个相同进程，进程名称：'+TmpServiceName+'\n')
+                           self.GlobalFileObj.write(CurrentTimeString+' 检测到多个相同进程，进程名称：'+\
+                                        TmpServiceName+' '+str(self.Dict4Threadname[TmpServiceName])+\
+                                                   ' '+TmpPID+'\n')
+                           print (CurrentTimeString+'相同的进程命令参数：'+TmpFileContent+'\n')
                        elif TmpServiceName not in self.Dict4Threadname:
                            self.GlobalFileObj.write(CurrentTimeString+' 检测到新的JAVA进程,PID:'+TmpPID+' 名称：'+TmpServiceName+'\n')
                            threading.Thread(target=self.monitorProcess,args=[TmpServiceName,TmpPID,
