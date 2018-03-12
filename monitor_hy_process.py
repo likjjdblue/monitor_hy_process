@@ -155,7 +155,7 @@ class monitorHYProcess:
                     self.ResourceState='bad'
 
                     self.GlobalFileObj.write('*'*20+CurrentTimeString+'*'*20+'\n')
-                    self.GlobalFileObj.write('内存消耗过快\n'+'消耗速度'+str(TmpAverageRAMDelta))
+                    self.GlobalFileObj.write('内存消耗过快\n'+'消耗速度'+str(TmpAverageRAMDelta)+'\n')
                     self.GlobalFileObj.write(str(QueueObj4RAM))
                     self.GlobalFileObj.write(TmpRAMResult+'\n')
                     self.GlobalFileObj.write('*'*30+'END'+'*'*30+'\n\n')
