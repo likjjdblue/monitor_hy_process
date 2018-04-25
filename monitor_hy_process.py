@@ -308,7 +308,8 @@ class monitorHYProcess:
                try:
                    with open(r'/proc/%s/cmdline'%(TmpPID,),mode='r') as f:
                        TmpFileContent=f.read()
-               except:
+               except Exception as e:
+                   print (str(e))
                    print ('异常发生，忽略')
                    continue
                for TmpPathItem in self.TargetJAVAInstalledPathList:
