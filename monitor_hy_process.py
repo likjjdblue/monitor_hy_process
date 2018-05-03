@@ -175,128 +175,131 @@ class monitorHYProcess:
        QueueObj4RAM=deque(maxlen=self.GlobalSamplesListLength)
        TmpPreviousUsedCPU=None
        TmpPreviousUsedRAM=None
+       try:
+           while not self.FlagOfQuit:
+              CurrentTimeString=datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+              if not path.isdir(path.join('logs',name,'top')):
+                 makedirs(path.join('logs',name,'top'))
+              if not path.isdir(path.join('logs',name,'ps')):
+                 makedirs(path.join('logs',name,'ps'))
+              if not path.isdir(path.join('logs',name,'jvm')):
+                 makedirs(path.join('logs',name,'jvm'))
 
-       while not self.FlagOfQuit:
-          CurrentTimeString=datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-          if not path.isdir(path.join('logs',name,'top')):
-             makedirs(path.join('logs',name,'top'))
-          if not path.isdir(path.join('logs',name,'ps')):
-             makedirs(path.join('logs',name,'ps'))
-          if not path.isdir(path.join('logs',name,'jvm')):
-             makedirs(path.join('logs',name,'jvm'))
+              try:
+                 kill(int(pid.strip()),0)
+              except:
+                 self.GlobalFileObj.write(CurrentTimeString+' 进程名称：'+str(name)+' PID:'+str(pid)+'不存在或程序已经退出.子线程退出\n')
+                 break
 
-          try:
-             kill(int(pid.strip()),0)
-          except:
-             self.GlobalFileObj.write(CurrentTimeString+' 进程名称：'+str(name)+' PID:'+str(pid)+'不存在或程序已经退出.子线程退出\n')
-             break
-          
-          TmpSnapshotA,TmpErrorA=subprocess.Popen('top -p %s -b -n 1 -H'%(pid.strip(),),shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()
-          TmpCmd='ps -p %s ww -o user,pid,ppid,lwp,nlwp,pcpu,pmem,vsz,rss,size,stat,stime,etime,cputime,args,cmd,comm'%(pid.strip(),)
-          TmpSnapshotB,TmpErrorB=subprocess.Popen(TmpCmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()
+              TmpSnapshotA,TmpErrorA=subprocess.Popen('top -p %s -b -n 1 -H'%(pid.strip(),),shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()
+              TmpCmd='ps -p %s ww -o user,pid,ppid,lwp,nlwp,pcpu,pmem,vsz,rss,size,stat,stime,etime,cputime,args,cmd,comm'%(pid.strip(),)
+              TmpSnapshotB,TmpErrorB=subprocess.Popen(TmpCmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()
 
-          ReObj=re.search(r'^(\s*\d+.*?)\n',TmpSnapshotA,flags=re.MULTILINE)
-          if not ReObj:
-             self.GlobalFileObj.write(CurrentTimeString+' 进程名称：'+str(name)+' PID:'+str(pid)+'不存在或程序已经退出.子线程退出\n')
-             break
+              ReObj=re.search(r'^(\s*\d+.*?)\n',TmpSnapshotA,flags=re.MULTILINE)
+              if not ReObj:
+                 self.GlobalFileObj.write(CurrentTimeString+' 进程名称：'+str(name)+' PID:'+str(pid)+'不存在或程序已经退出.子线程退出\n')
+                 break
 
-          TmpResult=ReObj.group(1).strip().split()
-          TmpCurrentUsedCPU,TmpCurrentUsedRAM=float(TmpResult[8].strip()),float(TmpResult[9].strip())
-                    
-          if len(QueueObj4CPU)<1:
-             QueueObj4CPU.append(0)
-             QueueObj4RAM.append(0)
-             TmpPreviousUsedCPU=TmpCurrentUsedCPU
-             TmpPreviousUsedRAM=TmpCurrentUsedRAM
-             continue
-          else:
-             TmpUsedDeltaCPU=TmpCurrentUsedCPU-TmpPreviousUsedCPU
-             TmpUsedDeltaRAM=(TmpCurrentUsedRAM-TmpPreviousUsedRAM)*self.TotalRAMSize*0.01
-             QueueObj4CPU.append(TmpUsedDeltaCPU)
-             QueueObj4RAM.append(TmpUsedDeltaRAM)
+              TmpResult=ReObj.group(1).strip().split()
+              TmpCurrentUsedCPU,TmpCurrentUsedRAM=float(TmpResult[8].strip()),float(TmpResult[9].strip())
 
-             TmpPreviousUsedCPU=TmpCurrentUsedCPU
-             TmpPreviousUsedRAM=TmpCurrentUsedRAM
-             TmpAverageCPUDelta=ceil(float(sum(QueueObj4CPU))/len(QueueObj4CPU))
-             TmpAverageRAMDelta=int(ceil(float(sum(QueueObj4RAM))/len(QueueObj4RAM)))
+              if len(QueueObj4CPU)<1:
+                 QueueObj4CPU.append(0)
+                 QueueObj4RAM.append(0)
+                 TmpPreviousUsedCPU=TmpCurrentUsedCPU
+                 TmpPreviousUsedRAM=TmpCurrentUsedRAM
+                 continue
+              else:
+                 TmpUsedDeltaCPU=TmpCurrentUsedCPU-TmpPreviousUsedCPU
+                 TmpUsedDeltaRAM=(TmpCurrentUsedRAM-TmpPreviousUsedRAM)*self.TotalRAMSize*0.01
+                 QueueObj4CPU.append(TmpUsedDeltaCPU)
+                 QueueObj4RAM.append(TmpUsedDeltaRAM)
 
-          if self.ResourceState=='bad':
-             self.GlobalFileObj.write(CurrentTimeString+':线程:'+name+' PID:'+str(pid)+'生成快照\n\n')
-             with open(path.join('logs',name,'top',name+'_'+str(pid)+'_'+CurrentTimeString+'_'+'top.log'),mode='wb') as f:
-                f.write(TmpSnapshotA) 
+                 TmpPreviousUsedCPU=TmpCurrentUsedCPU
+                 TmpPreviousUsedRAM=TmpCurrentUsedRAM
+                 TmpAverageCPUDelta=ceil(float(sum(QueueObj4CPU))/len(QueueObj4CPU))
+                 TmpAverageRAMDelta=int(ceil(float(sum(QueueObj4RAM))/len(QueueObj4RAM)))
 
-             with open(path.join('logs',name,'ps',name+'_'+str(pid)+'_'+CurrentTimeString+'_'+'ps.log'),mode='wb') as f:
-                f.write(TmpSnapshotB)
+              if self.ResourceState=='bad':
+                 self.GlobalFileObj.write(CurrentTimeString+':线程:'+name+' PID:'+str(pid)+'生成快照\n\n')
+                 with open(path.join('logs',name,'top',name+'_'+str(pid)+'_'+CurrentTimeString+'_'+'top.log'),mode='wb') as f:
+                    f.write(TmpSnapshotA)
 
-             TmpObj=subprocess.Popen('jstack -l %s'%(pid,),shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-             ThreadObj=threading.Thread(target=self.__generateJVMSnapshot,args=[name,pid,CurrentTimeString,TmpObj])
-             ThreadObj.start()
-             ThreadObj.join(8.0)
-             if ThreadObj.is_alive():
-                try:
-                    TmpObj.terminate()
-                except:
-                    pass
-                self.GlobalFileObj.write(name+'PID:'+str(pid)+' jstack 无响应，重新获取JVM 信息\n')
-                TmpSnapshotC=subprocess.Popen('jstack -F %s'%(pid,),shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()[0]
-                with open(path.join('logs',name,'jvm',name+'_'+str(pid)+'_'+CurrentTimeString+'_'+'jstack.log'),mode='wb') as f:
-                    f.write(TmpSnapshotC)
-          else:
-             if TmpAverageCPUDelta>cpudelta:
-                self.GlobalFileObj.write('*'*30+' '+CurrentTimeString+' '+'*'*30+'\n')
-                self.GlobalFileObj.write(CurrentTimeString+' : '+name+' PID: '+str(pid)+' 消耗CPU过快\n')
-                self.GlobalFileObj.write('消耗速度：'+str(TmpAverageCPUDelta)+'\n')
-                self.GlobalFileObj.write(str(QueueObj4CPU)+'\n')
-                self.GlobalFileObj.write('*'*30+' END '+'*'*30+'\n\n')
-                
-                self.GlobalFileObj.write(CurrentTimeString+':线程:'+name+' PID:'+str(pid)+'生成快照\n')
-                with open(path.join('logs',name,'top',name+'_'+str(pid)+'_'+CurrentTimeString+'_'+'top.log'),mode='wb') as f:
-                     f.write(TmpSnapshotA)
-                
-                with open(path.join('logs',name,'ps',name+'_'+str(pid)+'_'+CurrentTimeString+'_'+'ps.log'),mode='wb') as f:
-                     f.write(TmpSnapshotB)
+                 with open(path.join('logs',name,'ps',name+'_'+str(pid)+'_'+CurrentTimeString+'_'+'ps.log'),mode='wb') as f:
+                    f.write(TmpSnapshotB)
 
-                TmpObj=subprocess.Popen('jstack -l %s'%(pid,),shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-                ThreadObj=threading.Thread(target=self.__generateJVMSnapshot,args=[name,pid,CurrentTimeString,TmpObj])
-                ThreadObj.start()
-                ThreadObj.join(8.0)
-                if ThreadObj.is_alive():
-                    TmpObj.terminate()
-                    self.GlobalFileObj.write(CurrentTimeString+' : '+name+'PID:'+str(pid)+' jstack 无响应，重新获取JVM 信息\n')
-                    TmpSnapshotC=subprocess.Popen('jstack -F %s'%(pid,),shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()[0]
-                    with open(path.join('logs',name,'jvm',name+'_'+str(pid)+'_'+CurrentTimeString+'_'+'jstack.log'),mode='wb') as f:
-                         f.write(TmpSnapshotC)
-             if TmpAverageRAMDelta>ramdelta:
-                self.GlobalFileObj.write('*'*30+' '+CurrentTimeString+' '+'*'*30+'\n')
-                self.GlobalFileObj.write(CurrentTimeString+' : '+name+' PID: '+str(pid)+' 消耗内存过快\n')
-                self.GlobalFileObj.write('消耗速度：'+str(TmpAverageRAMDelta)+'\n')
-                self.GlobalFileObj.write(str(QueueObj4RAM)+'\n')
-                self.GlobalFileObj.write('*'*30+' END '+'*'*30+'\n\n')
-
-
-                self.GlobalFileObj.write(CurrentTimeString+':线程:'+name+' PID:'+str(pid)+'生成快照\n')
-                with open(path.join('logs',name,'top',name+'_'+str(pid)+'_'+CurrentTimeString+'_'+'cpu.log'),mode='wb') as f:
-                     f.write(TmpSnapshotA)
-                
-                with open(path.join('logs',name,'ps',name+'_'+str(pid)+'_'+CurrentTimeString+'_'+'ps.log'),mode='wb') as f:
-                     f.write(TmpSnapshotB)
-
-                TmpObj=subprocess.Popen('jstack -l %s'%(pid,),shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-                ThreadObj=threading.Thread(target=self.__generateJVMSnapshot,args=[name,pid,CurrentTimeString,TmpObj])
-                ThreadObj.start()
-                ThreadObj.join(3.0)
-                if ThreadObj.is_alive():
-                    TmpObj.terminate()
+                 TmpObj=subprocess.Popen('jstack -l %s'%(pid,),shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+                 ThreadObj=threading.Thread(target=self.__generateJVMSnapshot,args=[name,pid,CurrentTimeString,TmpObj])
+                 ThreadObj.start()
+                 ThreadObj.join(8.0)
+                 if ThreadObj.is_alive():
+                    try:
+                        TmpObj.terminate()
+                    except:
+                        pass
                     self.GlobalFileObj.write(name+'PID:'+str(pid)+' jstack 无响应，重新获取JVM 信息\n')
                     TmpSnapshotC=subprocess.Popen('jstack -F %s'%(pid,),shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()[0]
                     with open(path.join('logs',name,'jvm',name+'_'+str(pid)+'_'+CurrentTimeString+'_'+'jstack.log'),mode='wb') as f:
-                         f.write(TmpSnapshotC)
-          sleep(self.GlobalSampleInterval)
+                        f.write(TmpSnapshotC)
+              else:
+                 if TmpAverageCPUDelta>cpudelta:
+                    self.GlobalFileObj.write('*'*30+' '+CurrentTimeString+' '+'*'*30+'\n')
+                    self.GlobalFileObj.write(CurrentTimeString+' : '+name+' PID: '+str(pid)+' 消耗CPU过快\n')
+                    self.GlobalFileObj.write('消耗速度：'+str(TmpAverageCPUDelta)+'\n')
+                    self.GlobalFileObj.write(str(QueueObj4CPU)+'\n')
+                    self.GlobalFileObj.write('*'*30+' END '+'*'*30+'\n\n')
 
-       self.Dict4Threadname.pop(name)
-       CurrentTimeString=datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-       self.GlobalFileObj.write(CurrentTimeString+' 线程退出:'+name+' PID:'+str(pid)+'\n')
-       exit(0)
+                    self.GlobalFileObj.write(CurrentTimeString+':线程:'+name+' PID:'+str(pid)+'生成快照\n')
+                    with open(path.join('logs',name,'top',name+'_'+str(pid)+'_'+CurrentTimeString+'_'+'top.log'),mode='wb') as f:
+                         f.write(TmpSnapshotA)
+
+                    with open(path.join('logs',name,'ps',name+'_'+str(pid)+'_'+CurrentTimeString+'_'+'ps.log'),mode='wb') as f:
+                         f.write(TmpSnapshotB)
+
+                    TmpObj=subprocess.Popen('jstack -l %s'%(pid,),shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+                    ThreadObj=threading.Thread(target=self.__generateJVMSnapshot,args=[name,pid,CurrentTimeString,TmpObj])
+                    ThreadObj.start()
+                    ThreadObj.join(8.0)
+                    if ThreadObj.is_alive():
+                        TmpObj.terminate()
+                        self.GlobalFileObj.write(CurrentTimeString+' : '+name+'PID:'+str(pid)+' jstack 无响应，重新获取JVM 信息\n')
+                        TmpSnapshotC=subprocess.Popen('jstack -F %s'%(pid,),shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()[0]
+                        with open(path.join('logs',name,'jvm',name+'_'+str(pid)+'_'+CurrentTimeString+'_'+'jstack.log'),mode='wb') as f:
+                             f.write(TmpSnapshotC)
+                 if TmpAverageRAMDelta>ramdelta:
+                    self.GlobalFileObj.write('*'*30+' '+CurrentTimeString+' '+'*'*30+'\n')
+                    self.GlobalFileObj.write(CurrentTimeString+' : '+name+' PID: '+str(pid)+' 消耗内存过快\n')
+                    self.GlobalFileObj.write('消耗速度：'+str(TmpAverageRAMDelta)+'\n')
+                    self.GlobalFileObj.write(str(QueueObj4RAM)+'\n')
+                    self.GlobalFileObj.write('*'*30+' END '+'*'*30+'\n\n')
+
+
+                    self.GlobalFileObj.write(CurrentTimeString+':线程:'+name+' PID:'+str(pid)+'生成快照\n')
+                    with open(path.join('logs',name,'top',name+'_'+str(pid)+'_'+CurrentTimeString+'_'+'cpu.log'),mode='wb') as f:
+                         f.write(TmpSnapshotA)
+
+                    with open(path.join('logs',name,'ps',name+'_'+str(pid)+'_'+CurrentTimeString+'_'+'ps.log'),mode='wb') as f:
+                         f.write(TmpSnapshotB)
+
+                    TmpObj=subprocess.Popen('jstack -l %s'%(pid,),shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+                    ThreadObj=threading.Thread(target=self.__generateJVMSnapshot,args=[name,pid,CurrentTimeString,TmpObj])
+                    ThreadObj.start()
+                    ThreadObj.join(3.0)
+                    if ThreadObj.is_alive():
+                        TmpObj.terminate()
+                        self.GlobalFileObj.write(name+'PID:'+str(pid)+' jstack 无响应，重新获取JVM 信息\n')
+                        TmpSnapshotC=subprocess.Popen('jstack -F %s'%(pid,),shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()[0]
+                        with open(path.join('logs',name,'jvm',name+'_'+str(pid)+'_'+CurrentTimeString+'_'+'jstack.log'),mode='wb') as f:
+                             f.write(TmpSnapshotC)
+              sleep(self.GlobalSampleInterval)
+       except Exception as e:
+           print ('子进程异常发生，PID：'+str(pid)+' '+str(e))
+           self.GlobalFileObj.write('子进程异常发生，PID：'+str(pid)+' '+str(e)+'\n')
+       finally:
+           self.Dict4Threadname.pop(name)
+           CurrentTimeString=datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+           self.GlobalFileObj.write(CurrentTimeString+' 线程退出:'+name+' PID:'+str(pid)+'\n')
+           exit(0)
 
 
    def discoverySerivces(self):
