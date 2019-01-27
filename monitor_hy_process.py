@@ -35,7 +35,7 @@ class monitorHYProcess:
                                       ]    ###需要监控的 JAVA 程序的路径    ####
             
       CurrentTimeString=datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-      ####  检测 vmstat jstack 是否正常   ####
+      ####  检测 vmstat jstack  pgrep 是否正常   ####
       if subprocess.call('which vmstat',shell=True,stdout=subprocess.PIPE):
          self.GlobalFileObj.write(CurrentTimeString+' 未检测到vmstat工具，程序退出\n')
          self.GlobalFileObj.close()
@@ -45,6 +45,11 @@ class monitorHYProcess:
          self.GlobalFileObj.close()
          raise Exception('未检测到jstack工具，程序退出')
       self.GlobalFileObj.write(CurrentTimeString+' jstack 和 vmstat 工具 检测正常\n')
+      if subprocess.call('which pgrep',shell=True,stdout=subprocess.PIPE):
+         self.GlobalFileObj.write(CurrentTimeString+' 未检测到pgrep工具，程序退出\n')
+         self.GlobalFileObj.close()
+         raise Exception('未检测到pgrep工具，程序退出')
+      self.GlobalFileObj.write(CurrentTimeString+' jstack 和 pgrep 工具 检测正常\n')
 
 
       TmpCPUInfo=subprocess.Popen('lscpu',shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()[0]
@@ -305,7 +310,9 @@ class monitorHYProcess:
    def discoverySerivces(self):
        while not self.FlagOfQuit:
            CurrentTimeString=datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-           TmpResult=subprocess.Popen("jps |grep -v 'Jps'|awk '{print $1}'",shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()[0]
+#           TmpResult=subprocess.Popen("jps |grep -v 'Jps'|awk '{print $1}'",shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()[0]
+
+           TmpResult=subprocess.Popen("pgrep java",shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE).communicate()[0]
            TmpPIDList=re.findall(r'\d+',TmpResult)
            for TmpPID in TmpPIDList:
                try:
