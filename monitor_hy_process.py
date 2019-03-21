@@ -323,6 +323,9 @@ class monitorHYProcess:
                    print ('异常发生，忽略')
                    continue
                for TmpPathItem in self.TargetJAVAInstalledPathList:
+                   if len(TmpPathItem)==0:
+                       continue
+
                    if TmpPathItem in TmpFileContent:
                        TmpServiceName=path.basename(path.normpath(TmpPathItem+'/'))
                        if (TmpServiceName in self.Dict4Threadname) and (TmpPID!=self.Dict4Threadname[TmpServiceName]):
